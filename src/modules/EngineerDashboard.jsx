@@ -403,7 +403,7 @@ const EngineerDashboard = () => {
         const fetchProjects = async () => {
             try {
                 setIsLoading(true);
-                const response = await fetch('http://localhost:3000/api/projects');
+                const response = await fetch('/api/projects');
                 if (!response.ok) throw new Error("Failed to fetch projects");
                 
                 const data = await response.json();
@@ -434,7 +434,7 @@ const EngineerDashboard = () => {
         setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
 
         try {
-            const response = await fetch(`http://localhost:3000/api/update-project/${updatedProject.id}`, {
+            const response = await fetch(`/api/update-project/${updatedProject.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

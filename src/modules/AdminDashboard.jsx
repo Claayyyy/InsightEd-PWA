@@ -34,7 +34,7 @@ const AdminDashboard = () => {
         const fetchSchools = async () => {
             try {
                 // Connect to your backend
-                const response = await fetch('http://localhost:3001/api/schools'); 
+                const response = await fetch('/api/schools');
                 
                 if (!response.ok) {
                     throw new Error('Failed to connect to server'); 

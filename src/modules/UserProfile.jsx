@@ -28,7 +28,7 @@ const UserProfile = () => {
 
                 // 2. Fetch Assigned School from Neon
                 try {
-                    const response = await fetch(`http://localhost:3000/api/school-by-user/${user.uid}`);
+                    const response = await fetch(`/api/school-by-user/${user.uid}`);
                     const result = await response.json();
                     if (result.exists) {
                         setSchoolId(result.data.school_id);

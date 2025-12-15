@@ -86,7 +86,7 @@ const NewProjects = () => {
         console.log("Attempting to save new project with data:", formData);
 
         try {
-            const response = await fetch('http://localhost:3000/api/save-project', {
+            const response = await fetch('/api/save-project', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
