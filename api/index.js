@@ -124,20 +124,70 @@ app.get('/api/check-school/:id', async (req, res) => {
 //                  SCHOOL HEAD FORMS ROUTES
 // ==================================================================
 
-// --- 4. POST: Save School Profile ---
+// --- 4. POST: Save School Profile (With Detailed Audit Log) ---
 app.post('/api/save-school', async (req, res) => {
   const data = req.body;
   const client = await pool.connect();
 
   try {
-    await client.query('BEGIN'); 
+    await client.query('BEGIN');
 
+    // 1. FETCH EXISTING DATA FIRST
+    const checkQuery = 'SELECT * FROM school_profiles WHERE school_id = $1';
+    const existingRes = await client.query(checkQuery, [data.schoolId]);
+    const oldData = existingRes.rows[0];
+
+    // 2. DETECT CHANGES
+    let changes = [];
+    let actionType = "Profile Created"; // Default for new rows
+
+    if (oldData) {
+      actionType = "Profile Updated";
+      
+      // List of fields to monitor for changes
+      // (Map frontend keys to database columns)
+      const fieldMap = {
+        schoolName: 'school_name',
+        region: 'region',
+        province: 'province',
+        division: 'division',
+        district: 'district',
+        municipality: 'municipality',
+        legDistrict: 'leg_district',
+        barangay: 'barangay',
+        motherSchoolId: 'mother_school_id',
+        latitude: 'latitude',
+        longitude: 'longitude'
+      };
+
+      for (const [frontKey, dbCol] of Object.entries(fieldMap)) {
+        const newValue = data[frontKey];
+        const oldValue = oldData[dbCol];
+
+        // Compare values (ignoring loose type differences like null vs undefined)
+        // We trim strings to avoid false positives on whitespace
+        const cleanNew = String(newValue || '').trim();
+        const cleanOld = String(oldValue || '').trim();
+
+        if (cleanNew !== cleanOld) {
+            changes.push({
+                field: dbCol,
+                old_value: cleanOld || "N/A",
+                new_value: cleanNew || "N/A"
+            });
+        }
+      }
+    }
+
+    // 3. CREATE DETAILED LOG ENTRY
     const newLogEntry = {
       timestamp: new Date().toISOString(),
       user: data.submittedBy,
-      action: "Profile Update"
+      action: actionType,
+      changes: changes // <--- Now includes the specific changes!
     };
 
+    // 4. PERFORM INSERT OR UPDATE
     const query = `
       INSERT INTO school_profiles (
         school_id, school_name, region, province, division, district, 
@@ -176,7 +226,14 @@ app.post('/api/save-school', async (req, res) => {
 
     await client.query(query, values);
     await client.query('COMMIT');
-    res.status(200).json({ message: "Profile saved successfully!" });
+    
+    // Optional: Log to your separate activity_logs table too if you want centralized logs
+    /* if (changes.length > 0) {
+       await logActivity(data.submittedBy, 'User', 'School Head', 'UPDATE', `School ${data.schoolId}`, `Changed ${changes.length} fields`);
+    }
+    */
+
+    res.status(200).json({ message: "Profile saved successfully!", changes: changes });
 
   } catch (err) {
     await client.query('ROLLBACK');
