@@ -491,6 +491,139 @@ app.get('/api/projects/:id', async (req, res) => {
   }
 });
 
+// --- 15. GET: Get Organized Classes Data ---
+app.get('/api/organized-classes/:uid', async (req, res) => {
+    const { uid } = req.params;
+    try {
+        // Fetch offering AND class counts from the SAME table
+        const query = `
+            SELECT 
+                school_id, school_name, curricular_offering,
+                classes_kinder, classes_grade_1, classes_grade_2, classes_grade_3,
+                classes_grade_4, classes_grade_5, classes_grade_6,
+                classes_grade_7, classes_grade_8, classes_grade_9, classes_grade_10,
+                classes_grade_11, classes_grade_12
+            FROM school_profiles 
+            WHERE submitted_by = $1
+        `;
+        
+        const result = await pool.query(query, [uid]);
+        
+        if (result.rows.length === 0) return res.json({ exists: false });
+        
+        // Return structured data for the frontend
+        const row = result.rows[0];
+        res.json({ 
+            exists: true, 
+            schoolId: row.school_id, 
+            offering: row.curricular_offering,
+            data: {
+                kinder: row.classes_kinder,
+                grade_1: row.classes_grade_1, grade_2: row.classes_grade_2, 
+                grade_3: row.classes_grade_3, grade_4: row.classes_grade_4, 
+                grade_5: row.classes_grade_5, grade_6: row.classes_grade_6,
+                grade_7: row.classes_grade_7, grade_8: row.classes_grade_8, 
+                grade_9: row.classes_grade_9, grade_10: row.classes_grade_10,
+                grade_11: row.classes_grade_11, grade_12: row.classes_grade_12
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Fetch failed" });
+    }
+});
+
+// --- 16. POST: Save Organized Classes (UPDATED) ---
+app.post('/api/save-organized-classes', async (req, res) => {
+    const data = req.body;
+    try {
+        // We now UPDATE school_profiles instead of inserting into a new table
+        const query = `
+            UPDATE school_profiles SET
+                classes_kinder = $2, 
+                classes_grade_1 = $3, classes_grade_2 = $4, classes_grade_3 = $5,
+                classes_grade_4 = $6, classes_grade_5 = $7, classes_grade_6 = $8,
+                classes_grade_7 = $9, classes_grade_8 = $10, classes_grade_9 = $11,
+                classes_grade_10 = $12, classes_grade_11 = $13, classes_grade_12 = $14
+            WHERE school_id = $1
+        `;
+        
+        await pool.query(query, [
+            data.schoolId, 
+            data.kinder, 
+            data.g1, data.g2, data.g3, data.g4, data.g5, data.g6,
+            data.g7, data.g8, data.g9, data.g10, 
+            data.g11, data.g12
+        ]);
+        
+        res.json({ message: "Classes saved successfully!" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- 17. GET: Get Teaching Personnel Data ---
+app.get('/api/teaching-personnel/:uid', async (req, res) => {
+    const { uid } = req.params;
+    try {
+        const query = `
+            SELECT 
+                school_id, school_name, curricular_offering,
+                teachers_es, teachers_jhs, teachers_shs
+            FROM school_profiles 
+            WHERE submitted_by = $1
+        `;
+        
+        const result = await pool.query(query, [uid]);
+        
+        if (result.rows.length === 0) return res.json({ exists: false });
+        
+        const row = result.rows[0];
+        res.json({ 
+            exists: true, 
+            schoolId: row.school_id, 
+            offering: row.curricular_offering,
+            data: {
+                es: row.teachers_es,
+                jhs: row.teachers_jhs,
+                shs: row.teachers_shs
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Fetch failed" });
+    }
+});
+
+// --- 18. POST: Save Teaching Personnel ---
+app.post('/api/save-teaching-personnel', async (req, res) => {
+    const data = req.body;
+    try {
+        const query = `
+            UPDATE school_profiles SET
+                teachers_es = $2, 
+                teachers_jhs = $3, 
+                teachers_shs = $4
+            WHERE school_id = $1
+        `;
+        
+        await pool.query(query, [
+            data.schoolId, 
+            data.es, 
+            data.jhs, 
+            data.shs
+        ]);
+        
+        res.json({ message: "Teaching personnel saved successfully!" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================================================================
 //                        SERVER STARTUP
 // ==================================================================
