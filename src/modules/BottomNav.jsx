@@ -4,11 +4,54 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 // ICONS
 import { TbHomeEdit, TbCloudUpload } from "react-icons/tb"; 
-import { LuUser } from "react-icons/lu"; 
+import { LuUser, LuCompass } from "react-icons/lu"; // Added LuCompass for Explore
 
-const BottomNav = ({ homeRoute }) => {
+const BottomNav = ({ homeRoute, userRole = 'School Head' }) => {
     const navigate = useNavigate();
     const location = useLocation();
+
+    // --- CONFIGURATION LOGIC ---
+    const getNavItems = () => {
+        if (userRole === 'Engineer') {
+            return {
+                left: { label: 'Explore', path: '/new-project', icon: LuCompass },
+                center: { label: 'Home', path: '/engineer-dashboard', icon: TbHomeEdit },
+                right: { label: 'Sync', path: '/outbox', icon: TbCloudUpload }
+            };
+        }
+        // Default (School Head / Others) - Uses the layout you provided
+        return {
+            left: { label: 'Sync', path: '/outbox', icon: TbCloudUpload },
+            center: { label: 'Home', path: homeRoute || '/schoolhead-dashboard', icon: TbHomeEdit },
+            right: { label: 'Profile', path: '/profile', icon: LuUser }
+        };
+    };
+
+    const { left, center, right } = getNavItems();
+
+    // --- RENDER HELPERS ---
+    // Helper to keep JSX clean while retaining your exact styles
+    const renderSideButton = (item) => {
+        const isActive = location.pathname === item.path;
+        const Icon = item.icon;
+        
+        return (
+            <button 
+                style={styles.sideButton} 
+                onClick={() => navigate(item.path)}
+            >
+                <Icon 
+                    size={24} 
+                    color={isActive ? '#094684' : '#B0B0B0'}
+                    style={styles.icon}
+                />
+                <span style={{
+                    ...styles.label,
+                    color: isActive ? '#094684' : '#B0B0B0'
+                }}>{item.label}</span>
+            </button>
+        );
+    };
 
     return (
         <div style={styles.wrapper}>
@@ -25,47 +68,22 @@ const BottomNav = ({ homeRoute }) => {
 
             <div style={styles.navItems}>
                 
-                {/* 1. SYNC BUTTON (Replaces Activity) */}
-                <button 
-                    style={styles.sideButton} 
-                    onClick={() => navigate('/outbox')}
-                >
-                    <TbCloudUpload 
-                        size={24} 
-                        color={location.pathname === '/outbox' ? '#094684' : '#B0B0B0'}
-                        style={styles.icon}
-                    />
-                    <span style={{
-                        ...styles.label,
-                        color: location.pathname === '/outbox' ? '#094684' : '#B0B0B0'
-                    }}>Sync</span>
-                </button>
+                {/* 1. LEFT BUTTON (Explore for Engineer / Sync for Head) */}
+                {renderSideButton(left)}
 
                 {/* 2. HOME BUTTON (Floating) */}
                 <div style={styles.centerButtonContainer}>
                     <button 
                         style={styles.floatingButton}
-                        onClick={() => navigate(homeRoute || '/schoolhead-dashboard')}
+                        onClick={() => navigate(center.path)}
                     >
-                        <TbHomeEdit size={30} color="#ffffffff" />
+                        <center.icon size={30} color="#ffffffff" />
                     </button>
                 </div>
 
-                {/* 3. PROFILE BUTTON (Restored to /profile) */}
-                <button 
-                    style={styles.sideButton} 
-                    onClick={() => navigate('/profile')}
-                >
-                    <LuUser 
-                        size={24} 
-                        color={location.pathname === '/profile' ? '#094684' : '#B0B0B0'}
-                        style={styles.icon}
-                    />
-                    <span style={{
-                        ...styles.label,
-                        color: location.pathname === '/profile' ? '#094684' : '#B0B0B0'
-                    }}>Profile</span>
-                </button>
+                {/* 3. RIGHT BUTTON (Sync for Engineer / Profile for Head) */}
+                {renderSideButton(right)}
+
             </div>
         </div>
     );
